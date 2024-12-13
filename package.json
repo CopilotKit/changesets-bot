@@ -5,6 +5,9 @@
   "private": true,
   "repository": "https://github.com/changesets/bot",
   "homepage": "https://github.com/apps/changeset-bot",
+  "scripts": {
+    "dev": "PORT=3000 HOST=0.0.0.0 next dev"
+  },
   "dependencies": {
     "@changesets/assemble-release-plan": "^6.0.2",
     "@changesets/config": "^3.0.1",

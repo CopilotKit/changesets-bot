@@ -16,6 +16,7 @@ export let getChangedPackages = async ({
   changedFiles: changedFilesPromise,
   octokit,
   installationToken,
+  rootDir = "CopilotKit",
 }: {
   owner: string;
   repo: string;
@@ -23,6 +24,7 @@ export let getChangedPackages = async ({
   changedFiles: string[] | Promise<string[]>;
   octokit: InstanceType<typeof ProbotOctokit>;
   installationToken: string;
+  rootDir?: string;
 }) => {
   let hasErrored = false;
   let encodedCredentials = Buffer.from(
@@ -68,8 +70,8 @@ export let getChangedPackages = async ({
     };
   }
 
-  let rootPackageJsonContentsPromise = fetchJsonFile("package.json");
-  let configPromise: Promise<any> = fetchJsonFile(".changeset/config.json");
+  let rootPackageJsonContentsPromise = fetchJsonFile(`${rootDir}/package.json`);
+  let configPromise: Promise<any> = fetchJsonFile(`${rootDir}/.changeset/config.json`);
 
   let tree = await octokit.git.getTree({
     owner,
@@ -86,20 +88,22 @@ export let getChangedPackages = async ({
 
   for (let item of tree.data.tree) {
     if (!item.path) continue;
+    if (!item.path.startsWith(rootDir)) continue;
+    
     if (item.path.endsWith("/package.json")) {
       let dirPath = nodePath.dirname(item.path);
       potentialWorkspaceDirectories.push(dirPath);
-    } else if (item.path === "pnpm-workspace.yaml") {
+    } else if (item.path === `${rootDir}/pnpm-workspace.yaml`) {
       isPnpm = true;
-    } else if (item.path === ".changeset/pre.json") {
-      preStatePromise = fetchJsonFile(".changeset/pre.json");
+    } else if (item.path === `${rootDir}/.changeset/pre.json`) {
+      preStatePromise = fetchJsonFile(`${rootDir}/.changeset/pre.json`);
     } else if (
-      item.path !== ".changeset/README.md" &&
-      item.path.startsWith(".changeset") &&
+      item.path !== `${rootDir}/.changeset/README.md` &&
+      item.path.startsWith(`${rootDir}/.changeset`) &&
       item.path.endsWith(".md") &&
       changedFiles.includes(item.path)
     ) {
-      let res = /\.changeset\/([^\.]+)\.md/.exec(item.path);
+      let res = new RegExp(`${rootDir}/\\.changeset/([^\.]+)\\.md`).exec(item.path);
       if (!res) {
         throw new Error("could not get name from changeset filename");
       }
@@ -121,7 +125,7 @@ export let getChangedPackages = async ({
   if (isPnpm) {
     tool = {
       tool: "pnpm",
-      globs: safeLoad(await fetchTextFile("pnpm-workspace.yaml")).packages,
+      globs: safeLoad(await fetchTextFile("CopilotKit/pnpm-workspace.yaml")).packages,
     };
   } else {
     let rootPackageJsonContent = await rootPackageJsonContentsPromise;
@@ -167,6 +171,9 @@ export let getChangedPackages = async ({
     ) {
       throw new Error("globs are not valid: " + JSON.stringify(tool.globs));
     }
+
+    tool.globs = tool.globs.map((glob) => `${rootDir}/${glob}`);
+    
     let matches = micromatch(potentialWorkspaceDirectories, tool.globs);
 
     packages.packages = await Promise.all(

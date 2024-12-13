@@ -123,8 +123,8 @@ const hasChangesetBeenAdded = (
     files.data.some(
       (file) =>
         file.status === "added" &&
-        /^\.changeset\/.+\.md$/.test(file.filename) &&
-        file.filename !== ".changeset/README.md"
+        /^CopilotKit\/\.changeset\/.+\.md$/.test(file.filename) &&
+        file.filename !== "CopilotKit/.changeset/README.md"
     )
   );
 
@@ -183,6 +183,8 @@ export default (app: Probot) => {
                 })
               ).data.token,
             }).catch((err) => {
+              console.log("CAUGHT");
+              console.log("err", err)
               if (err instanceof ValidationError) {
                 errFromFetchingChangedFiles = `<details><summary>💥 An error occurred when fetching the changed packages and changesets in this PR</summary>\n\n\`\`\`\n${err.message}\n\`\`\`\n\n</details>\n`;
               } else {
@@ -196,11 +198,13 @@ export default (app: Probot) => {
             }),
           ] as const);
 
+        console.log("changedPackages", changedPackages)
+
         let addChangesetUrl = `${
           context.payload.pull_request.head.repo.html_url
         }/new/${
           context.payload.pull_request.head.ref
-        }?filename=.changeset/${humanId({
+        }?filename=CopilotKit/.changeset/${humanId({
           separator: "-",
           capitalize: false,
         })}.md&value=${getNewChangesetTemplate(
