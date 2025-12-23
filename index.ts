@@ -17,7 +17,7 @@ const getReleasePlanMessage = (releasePlan: ReleasePlan | null) => {
 
   const publishableReleases = releasePlan.releases.filter(
     (x): x is ComprehensiveRelease & { type: Exclude<VersionType, "none"> } =>
-      x.type !== "none"
+      x.type !== "none",
   );
 
   let table = markdownTable([
@@ -56,7 +56,7 @@ const getReleasePlanMessage = (releasePlan: ReleasePlan | null) => {
 const getAbsentMessage = (
   commitSha: string,
   addChangesetUrl: string,
-  releasePlan: ReleasePlan | null
+  releasePlan: ReleasePlan | null,
 ) => `###  ⚠️  No Changeset found
 
 Latest commit: ${commitSha}
@@ -72,7 +72,7 @@ ${getReleasePlanMessage(releasePlan)}
 const getApproveMessage = (
   commitSha: string,
   addChangesetUrl: string,
-  releasePlan: ReleasePlan | null
+  releasePlan: ReleasePlan | null,
 ) => `###  🦋  Changeset detected
 
 Latest commit: ${commitSha}
@@ -100,28 +100,28 @@ type PRContext = EmitterWebhookEvent<
 
 const getCommentId = (
   context: PRContext,
-  params: { repo: string; owner: string; issue_number: number }
+  params: { repo: string; owner: string; issue_number: number },
 ) =>
   context.octokit.issues.listComments(params).then((comments) => {
     const changesetBotComment = comments.data.find(
       // TODO: find what the current user is in some way or something
       (comment) =>
         comment.user?.login === "changeset-bot[bot]" ||
-        comment.user?.login === "changesets-test-bot[bot]"
+        comment.user?.login === "changesets-test-bot[bot]",
     );
     return changesetBotComment ? changesetBotComment.id : null;
   });
 
 const hasChangesetBeenAdded = (
-  changedFilesPromise: ReturnType<PRContext["octokit"]["pulls"]["listFiles"]>
+  changedFilesPromise: ReturnType<PRContext["octokit"]["pulls"]["listFiles"]>,
 ) =>
   changedFilesPromise.then((files) =>
     files.data.some(
       (file) =>
         file.status === "added" &&
-        /^CopilotKit\/\.changeset\/.+\.md$/.test(file.filename) &&
-        file.filename !== "CopilotKit/.changeset/README.md"
-    )
+        /^src\/v1\.x\/\.changeset\/.+\.md$/.test(file.filename) &&
+        file.filename !== "src/v1.x/.changeset/README.md",
+    ),
   );
 
 export default (app: Probot) => {
@@ -168,7 +168,7 @@ export default (app: Probot) => {
               owner: context.payload.pull_request.head.repo.owner.login,
               ref: context.payload.pull_request.head.ref,
               changedFiles: changedFilesPromise.then((x) =>
-                x.data.map((x) => x.filename)
+                x.data.map((x) => x.filename),
               ),
               octokit: context.octokit,
               installationToken: (
@@ -180,7 +180,7 @@ export default (app: Probot) => {
               ).data.token,
             }).catch((err) => {
               console.log("CAUGHT");
-              console.log("err", err)
+              console.log("err", err);
               if (err instanceof ValidationError) {
                 errFromFetchingChangedFiles = `<details><summary>💥 An error occurred when fetching the changed packages and changesets in this PR</summary>\n\n\`\`\`\n${err.message}\n\`\`\`\n\n</details>\n`;
               } else {
@@ -194,18 +194,18 @@ export default (app: Probot) => {
             }),
           ] as const);
 
-        console.log("changedPackages", changedPackages)
+        console.log("changedPackages", changedPackages);
 
         let addChangesetUrl = `${
           context.payload.pull_request.head.repo.html_url
         }/new/${
           context.payload.pull_request.head.ref
-        }?filename=CopilotKit/.changeset/${humanId({
+        }?filename=src/v1.x/.changeset/${humanId({
           separator: "-",
           capitalize: false,
         })}.md&value=${getNewChangesetTemplate(
           changedPackages,
-          context.payload.pull_request.title
+          context.payload.pull_request.title,
         )}`;
 
         let prComment = {
@@ -217,7 +217,7 @@ export default (app: Probot) => {
               : getAbsentMessage(
                   latestCommitSha,
                   addChangesetUrl,
-                  releasePlan
+                  releasePlan,
                 )) + errFromFetchingChangedFiles,
         };
 
@@ -232,6 +232,6 @@ export default (app: Probot) => {
         console.error(err);
         throw err;
       }
-    }
+    },
   );
 };
