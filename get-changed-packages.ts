@@ -129,7 +129,7 @@ export let getChangedPackages = async ({
   if (isPnpm) {
     tool = {
       tool: "pnpm",
-      globs: safeLoad(await fetchTextFile("src/v1.x/pnpm-workspace.yaml"))
+      globs: (safeLoad(await fetchTextFile("src/v1.x/pnpm-workspace.yaml")) as any)
         .packages,
     };
   } else {

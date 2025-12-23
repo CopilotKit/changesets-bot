@@ -102,10 +102,10 @@ const getCommentId = (
   context: PRContext,
   params: { repo: string; owner: string; issue_number: number },
 ) =>
-  context.octokit.issues.listComments(params).then((comments) => {
+  context.octokit.issues.listComments(params).then((comments: any) => {
     const changesetBotComment = comments.data.find(
       // TODO: find what the current user is in some way or something
-      (comment) =>
+      (comment: any) =>
         comment.user?.login === "changeset-bot[bot]" ||
         comment.user?.login === "changesets-test-bot[bot]",
     );
@@ -115,9 +115,9 @@ const getCommentId = (
 const hasChangesetBeenAdded = (
   changedFilesPromise: ReturnType<PRContext["octokit"]["pulls"]["listFiles"]>,
 ) =>
-  changedFilesPromise.then((files) =>
+  changedFilesPromise.then((files: any) =>
     files.data.some(
-      (file) =>
+      (file: any) =>
         file.status === "added" &&
         /^src\/v1\.x\/\.changeset\/.+\.md$/.test(file.filename) &&
         file.filename !== "src/v1.x/.changeset/README.md",
