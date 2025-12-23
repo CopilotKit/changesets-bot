@@ -35,6 +35,7 @@
     "typescript": "^4.7.4"
   },
   "devDependencies": {
+    "@octokit/webhooks": "^14.2.0",
     "jest": "^24.1.0",
     "nock": "^10.0.0",
     "outdent": "^0.7.0"
