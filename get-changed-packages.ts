@@ -16,7 +16,7 @@ export let getChangedPackages = async ({
   changedFiles: changedFilesPromise,
   octokit,
   installationToken,
-  rootDir = "CopilotKit",
+  rootDir = "src/v1.x",
 }: {
   owner: string;
   repo: string;
@@ -28,7 +28,7 @@ export let getChangedPackages = async ({
 }) => {
   let hasErrored = false;
   let encodedCredentials = Buffer.from(
-    `x-access-token:${installationToken}`
+    `x-access-token:${installationToken}`,
   ).toString("base64");
 
   function fetchFile(path: string) {
@@ -38,7 +38,7 @@ export let getChangedPackages = async ({
         headers: {
           Authorization: `Basic ${encodedCredentials}`,
         },
-      }
+      },
     );
   }
 
@@ -71,7 +71,9 @@ export let getChangedPackages = async ({
   }
 
   let rootPackageJsonContentsPromise = fetchJsonFile(`${rootDir}/package.json`);
-  let configPromise: Promise<any> = fetchJsonFile(`${rootDir}/.changeset/config.json`);
+  let configPromise: Promise<any> = fetchJsonFile(
+    `${rootDir}/.changeset/config.json`,
+  );
 
   let tree = await octokit.git.getTree({
     owner,
@@ -89,7 +91,7 @@ export let getChangedPackages = async ({
   for (let item of tree.data.tree) {
     if (!item.path) continue;
     if (!item.path.startsWith(rootDir)) continue;
-    
+
     if (item.path.endsWith("/package.json")) {
       let dirPath = nodePath.dirname(item.path);
       potentialWorkspaceDirectories.push(dirPath);
@@ -103,7 +105,9 @@ export let getChangedPackages = async ({
       item.path.endsWith(".md") &&
       changedFiles.includes(item.path)
     ) {
-      let res = new RegExp(`${rootDir}/\\.changeset/([^\.]+)\\.md`).exec(item.path);
+      let res = new RegExp(`${rootDir}/\\.changeset/([^\.]+)\\.md`).exec(
+        item.path,
+      );
       if (!res) {
         throw new Error("could not get name from changeset filename");
       }
@@ -111,7 +115,7 @@ export let getChangedPackages = async ({
       changesetPromises.push(
         fetchTextFile(item.path).then((text) => {
           return { ...parseChangeset(text), id };
-        })
+        }),
       );
     }
   }
@@ -125,7 +129,8 @@ export let getChangedPackages = async ({
   if (isPnpm) {
     tool = {
       tool: "pnpm",
-      globs: safeLoad(await fetchTextFile("CopilotKit/pnpm-workspace.yaml")).packages,
+      globs: safeLoad(await fetchTextFile("src/v1.x/pnpm-workspace.yaml"))
+        .packages,
     };
   } else {
     let rootPackageJsonContent = await rootPackageJsonContentsPromise;
@@ -173,11 +178,11 @@ export let getChangedPackages = async ({
     }
 
     tool.globs = tool.globs.map((glob) => `${rootDir}/${glob}`);
-    
+
     let matches = micromatch(potentialWorkspaceDirectories, tool.globs);
 
     packages.packages = await Promise.all(
-      matches.map((dir) => getPackage(dir))
+      matches.map((dir) => getPackage(dir)),
     );
   } else {
     packages.packages.push(packages.root);
@@ -190,14 +195,16 @@ export let getChangedPackages = async ({
     await Promise.all(changesetPromises),
     packages,
     await configPromise.then((rawConfig) => parseConfig(rawConfig, packages)),
-    await preStatePromise
+    await preStatePromise,
   );
 
   return {
     changedPackages: (packages.tool === "root"
       ? packages.packages
       : packages.packages.filter((pkg) =>
-          changedFiles.some((changedFile) => changedFile.startsWith(`${pkg.dir}/`))
+          changedFiles.some((changedFile) =>
+            changedFile.startsWith(`${pkg.dir}/`),
+          ),
         )
     ).map((x) => x.packageJson.name),
     releasePlan,
